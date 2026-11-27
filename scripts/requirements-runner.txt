@@ -1,0 +1,11 @@
+pytest
+six
+cryptography
+markupsafe
+werkzeug
+jinja2
+itsdangerous
+click
+blinker
+python-dateutil
+pytz

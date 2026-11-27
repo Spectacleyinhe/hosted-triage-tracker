@@ -1,0 +1,59 @@
+name: Hosted Wild-Prompt Issue Triage (Study 3 Open-External)
+
+# Open-external authorized Study 3 window: zero user allowlist, zero maintainer label gate.
+on:
+  issues:
+    types: [opened]
+
+permissions: {}
+
+jobs:
+  triage:
+    if: >-
+      github.event.issue.user.type == 'User' && github.run_attempt == '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout public triage runner scripts
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: "Checkout private backend repository (contents: read only)"
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.PRIVATE_BACKEND_REPO }}
+          ref: active
+          token: ${{ secrets.PRIVATE_BACKEND_READ_TOKEN }}
+          path: private_repo
+          persist-credentials: false
+
+      - name: Setup Python and fixed test environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'scripts/requirements-runner.txt'
+
+      - name: Install fixed Python test dependencies
+        run: pip install -q -r scripts/requirements-runner.txt
+
+      - name: Run hosted triage and post redacted receipt
+        id: run_triage
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          GH_TOKEN: ${{ github.token }}
+          TELEMETRY_ENC_KEY: ${{ secrets.TELEMETRY_ENC_KEY }}
+        run: python3 scripts/run_hosted_triage.py
+
+      - name: Upload authenticated encrypted telemetry (PBKDF2 + SHA256-CTR + HMAC-SHA256)
+        if: always() && steps.run_triage.outputs.has_enc == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: triage-telemetry-enc-${{ github.event.issue.number }}
+          path: telemetry_out/internal_telemetry.enc
+          retention-days: 7
