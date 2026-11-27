@@ -1,6 +1,6 @@
 name: Hosted Wild-Prompt Issue Triage (Study 3 Open-External)
 
-# Open-external authorized Study 3 window: zero user allowlist, zero maintainer label gate.
+# Study 3 test window closed.
 on:
   issues:
     types: [opened]
@@ -10,7 +10,7 @@ permissions: {}
 jobs:
   triage:
     if: >-
-      github.event.issue.user.type == 'User' && github.run_attempt == '1'
+      false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
